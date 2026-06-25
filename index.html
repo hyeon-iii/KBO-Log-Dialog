@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KBO 직관 다이어리</title>
+
+<style>
+body{
+    font-family:'Pretendard',sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    color:#1e3a8a;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.1);
+}
+
+input, select, textarea{
+    width:100%;
+    padding:10px;
+    margin-top:5px;
+    margin-bottom:15px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    box-sizing:border-box;
+}
+
+button{
+    background:#1e3a8a;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#142b63;
+}
+
+.record{
+    background:white;
+    border-radius:15px;
+    padding:15px;
+    margin-bottom:20px;
+}
+
+.images{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
+}
+
+.images img{
+    width:150px;
+    height:150px;
+    object-fit:cover;
+    border-radius:10px;
+}
+
+.delete-btn{
+    background:#dc2626;
+    margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>⚾ KBO 직관 다이어리</h1>
+
+<div class="card">
+
+<label>경기 날짜</label>
+<input type="date" id="date">
+
+<label>구장</label>
+<select id="stadium">
+<option>잠실야구장</option>
+<option>고척스카이돔</option>
+<option>인천 SSG 랜더스필드</option>
+<option>수원 KT위즈파크</option>
+<option>대전 한화생명 볼파크</option>
+<option>광주 KIA 챔피언스필드</option>
+<option>대구 삼성 라이온즈 파크</option>
+<option>창원 NC 파크</option>
+<option>사직야구장</option>
+</select>
+
+<label>응원팀</label>
+<input type="text" id="team">
+
+<label>상대팀</label>
+<input type="text" id="opponent">
+
+<label>응원팀 점수</label>
+<input type="number" id="teamScore">
+
+<label>상대팀 점수</label>
+<input type="number" id="opponentScore">
+
+<label>직관 후기</label>
+<textarea id="memo" rows="5"></textarea>
+
+<label>사진 업로드 (최대 5장)</label>
+<input type="file" id="photos" multiple accept="image/*">
+
+<button onclick="saveRecord()">저장하기</button>
+
+</div>
+
+<div id="records"></div>
+
+</div>
+
+<script>
+
+let records = JSON.parse(localStorage.getItem("kboDiary")) || [];
+
+function saveRecord(){
+
+    const files = document.getElementById("photos").files;
+
+    if(files.length > 5){
+        alert("사진은 최대 5장까지 가능합니다.");
+        return;
+    }
+
+    const imagePromises = [];
+
+    for(let file of files){
+        imagePromises.push(
+            new Promise(resolve=>{
+                const reader = new FileReader();
+                reader.onload=e=>resolve(e.target.result);
+                reader.readAsDataURL(file);
+            })
+        );
+    }
+
+    Promise.all(imagePromises).then(images=>{
+
+        const record = {
+            date: document.getElementById("date").value,
+            stadium: document.getElementById("stadium").value,
+            team: document.getElementById("team").value,
+            opponent: document.getElementById("opponent").value,
+            teamScore: document.getElementById("teamScore").value,
+            opponentScore: document.getElementById("opponentScore").value,
+            memo: document.getElementById("memo").value,
+            images: images
+        };
+
+        records.unshift(record);
+
+        localStorage.setItem(
+            "kboDiary",
+            JSON.stringify(records)
+        );
+
+        location.reload();
+    });
+}
+
+function deleteRecord(index){
+
+    if(confirm("삭제하시겠습니까?")){
+        records.splice(index,1);
+
+        localStorage.setItem(
+            "kboDiary",
+            JSON.stringify(records)
+        );
+
+        renderRecords();
+    }
+}
+
+function renderRecords(){
+
+    const container =
+        document.getElementById("records");
+
+    container.innerHTML="";
+
+    records.forEach((record,index)=>{
+
+        let imagesHTML = "";
+
+        record.images.forEach(img=>{
+            imagesHTML += `<img src="${img}">`;
+        });
+
+        container.innerHTML += `
+        <div class="record">
+            <h3>${record.date}</h3>
+
+            <p><strong>구장:</strong> ${record.stadium}</p>
+
+            <p>
+                <strong>경기:</strong>
+                ${record.team}
+                ${record.teamScore}
+                :
+                ${record.opponentScore}
+                ${record.opponent}
+            </p>
+
+            <p>${record.memo}</p>
+
+            <div class="images">
+                ${imagesHTML}
+            </div>
+
+            <button
+              class="delete-btn"
+              onclick="deleteRecord(${index})">
+              삭제
+            </button>
+        </div>
+        `;
+    });
+}
+
+renderRecords();
+
+</script>
+
+</body>
+</html>
